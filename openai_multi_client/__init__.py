@@ -7,6 +7,7 @@ from typing import Any, Optional
 from aioprocessing import AioJoinableQueue, AioQueue
 from tenacity import wait_random_exponential, stop_after_attempt, AsyncRetrying, RetryError
 import openai
+from openai import AsyncOpenAI
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +55,7 @@ class OpenAIMultiClient:
         self._event_loop_thread = Thread(target=self._run_event_loop)
         self._event_loop_thread.start()
         self._mock_api = custom_api
+        self._client = None
         for i in range(concurrency):
             asyncio.run_coroutine_threadsafe(self._worker(i), self._loop)
 
@@ -71,22 +73,32 @@ class OpenAIMultiClient:
         asyncio.set_event_loop(self._loop)
         self._loop.run_forever()
 
+    def _get_client(self) -> AsyncOpenAI:
+        if self._client is None:
+            # Honor module-level configuration (e.g. `openai.api_key = ...`) for
+            # backward compatibility, falling back to the usual environment
+            # variables (OPENAI_API_KEY, OPENAI_ORG_ID, OPENAI_BASE_URL) otherwise.
+            self._client = AsyncOpenAI(
+                api_key=openai.api_key,
+                organization=openai.organization,
+                base_url=openai.base_url,
+            )
+        return self._client
+
     async def _process_payload(self, payload: Payload) -> Payload:
         logger.debug(f"Processing {payload}")
         if self._mock_api:
             payload.response = await self._mock_api(payload)
         elif payload.endpoint == "completions":
-            payload.response = await openai.Completion.acreate(**payload.data)
+            payload.response = await self._get_client().completions.create(**payload.data)
         elif payload.endpoint == "chat.completions" or payload.endpoint == "chats":
-            payload.response = await openai.ChatCompletion.acreate(**payload.data)
+            payload.response = await self._get_client().chat.completions.create(**payload.data)
         elif payload.endpoint == "embeddings":
-            payload.response = await openai.Embedding.acreate(**payload.data)
-        elif payload.endpoint == "edits":
-            payload.response = await openai.Edit.acreate(**payload.data)
+            payload.response = await self._get_client().embeddings.create(**payload.data)
         elif payload.endpoint == "images":
-            payload.response = await openai.Image.acreate(**payload.data)
+            payload.response = await self._get_client().images.generate(**payload.data)
         elif payload.endpoint == "fine-tunes":
-            payload.response = await openai.FineTune.acreate(**payload.data)
+            payload.response = await self._get_client().fine_tuning.jobs.create(**payload.data)
         else:
             raise ValueError(f"Unknown endpoint {payload.endpoint}")
         logger.debug(f"Processed {payload}")

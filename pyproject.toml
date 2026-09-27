@@ -16,7 +16,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies = [
-    "openai",
+    "openai>=1.0",
     "tenacity",
     "aioprocessing",
 ]
