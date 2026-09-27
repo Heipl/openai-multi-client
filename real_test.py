@@ -24,7 +24,7 @@ def test():
             failed += 1
             print(f"Failed {result.metadata['id']}")
         else:
-            print(f"Got response for {result.metadata['id']}:", result.response['choices'][0]['message']['content'])
+            print(f"Got response for {result.metadata['id']}:", result.response.choices[0].message.content)
 
     print('*' * 20)
     print(f"Total failed: {failed}")
@@ -37,7 +37,7 @@ def on_success(result: Payload):
         print(f"Failed {pid}")
     else:
         print(f"Got response for {pid}:",
-              result.response['choices'][0]['message']['content'])
+              result.response.choices[0].message.content)
 
 
 def test_callback():

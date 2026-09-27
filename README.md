@@ -78,7 +78,7 @@ api.run_request_function(make_requests)
 
 for result in api:
     num = result.metadata['num']
-    response = result.response['choices'][0]['message']['content']
+    response = result.response.choices[0].message.content
     print(f"{num} * {num}:", response)
 ```
 
@@ -96,7 +96,7 @@ api = OpenAIMultiClient(endpoint="chats", data_template={"model": "gpt-3.5-turbo
 
 def on_result(result: Payload):
     num = result.metadata['num']
-    response = result.response['choices'][0]['message']['content']
+    response = result.response.choices[0].message.content
     print(f"{num} * {num}:", response)
 
 
@@ -139,7 +139,7 @@ Setting the environmental variable `OPENAI_API_KEY` also works as expected.
 You can also configure the API endpoint if needed:
 
 ```python
-openai.api_base = "azure_openai_api_base_here"
+openai.base_url = "azure_openai_api_base_here"
 ```
 
 Once you've configured the `openai` library with your API key and endpoint, OpenAI Multi-Client will automatically use
@@ -151,12 +151,11 @@ projects without having to worry about separate configurations.
 The `endpoint` parameter in the `request()` method or during the initialization of the classes specifies which OpenAI
 API endpoint to use for the requests. The available endpoints are:
 
-- `"completions"`: For text completion requests using the `Completion` endpoint.
-- `"chats"` or `"chat.completions"`: For chat completion requests using the `ChatCompletion` endpoint.
-- `"embeddings"`: For embedding requests using the `Embedding` endpoint.
-- `"edits"`: For edit requests using the `Edit` endpoint.
-- `"images"`: For image requests using the `Image` endpoint.
-- `"fine-tunes"`: For fine-tuning requests using the `FineTune` endpoint.
+- `"completions"`: For text completion requests using the `completions` endpoint.
+- `"chats"` or `"chat.completions"`: For chat completion requests using the `chat.completions` endpoint.
+- `"embeddings"`: For embedding requests using the `embeddings` endpoint.
+- `"images"`: For image requests using the `images` endpoint.
+- `"fine-tunes"`: For fine-tuning requests using the `fine_tuning.jobs` endpoint.
 
 ### Data
 
@@ -430,7 +429,7 @@ def on_embedding_result(result):
         print(f'Failed to get embedding for article {result.metadata["id"]}')
         return
 
-    embedding = result.response['data'][0]['embedding']
+    embedding = result.response.data[0].embedding
     db.run('''
         ?[id, analysis_key, embedding] <- [[$id, $analysis_key, $embedding]]
         :put embedding {id, analysis_key => embedding}
@@ -447,7 +446,7 @@ def on_analysis_result(result):
         return
 
     analysis = {
-        result.metadata['key']: result.response['choices'][0]['message']['content']
+        result.metadata['key']: result.response.choices[0].message.content
     }
     
     db.run('''
